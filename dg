@@ -1,0 +1,113 @@
+"use client";
+
+import { useEffect, useState, useContext } from "react";
+import {
+  format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  addDays, isSameMonth, isSameDay
+} from "date-fns";
+import AddTransactionsBtn from "@/components/calendar-parts/addTransactionsBtn";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { TransactionListItem } from "@/components/calendar-parts/TransactionListItem";
+import { SpendingDataContext } from "@/contexts/SpendingDataContext";
+
+type Transaction = {
+  id: number;
+  date: string;
+  amount: number;
+  category: string;
+  description: string;
+};
+
+type DayData = {
+  total: number;
+  budget: number;
+  transactions: Transaction[];
+};
+
+export default function MonthCalendar() {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const { spendingData, setSpendingData } = useContext(SpendingDataContext);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/users/me/transactions/")
+      .then((res) => res.json())
+      .then((transactions: Transaction[]) => {
+        const dataByDate: Record<string, DayData> = {};
+        transactions.forEach((tx) => {
+          const date = tx.date;
+          if (!dataByDate[date]) {
+            dataByDate[date] = { total: 0, budget: 0, transactions: [] };
+          }
+          dataByDate[date].transactions.push(tx);
+          dataByDate[date].total += tx.amount;
+        });
+        setSpendingData(dataByDate);
+      });
+  }, [setSpendingData]);
+
+  const renderCalendar = () => {
+    const days = [];
+    const startDate = startOfWeek(startOfMonth(currentMonth));
+    const endDate = endOfWeek(endOfMonth(currentMonth));
+    let day = startDate;
+
+    while (day <= endDate) {
+      const formatted = format(day, "yyyy-MM-dd");
+      const dayData = spendingData[formatted];
+
+      days.push(
+        <div
+          key={formatted}
+          className={`border p-2 text-center ${
+            isSameMonth(day, currentMonth) ? "" : "text-gray-400"
+          } ${isSameDay(day, new Date()) ? "bg-blue-200" : ""}`}
+          onClick={() => setSelectedDay(day)}
+        >
+          {format(day, "d")}
+          {dayData && <div className="text-xs text-red-600">₹{dayData.total}</div>}
+        </div>
+      );
+
+      day = addDays(day, 1);
+    }
+
+    return <div className="grid grid-cols-7 gap-2">{days}</div>;
+  };
+
+  const renderDetails = () => {
+    if (!selectedDay) return null;
+    const formatted = format(selectedDay, "yyyy-MM-dd");
+    const dayData = spendingData[formatted];
+
+    return (
+      <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
+        <DialogTrigger />
+        <DialogContent>
+          <h2>{formatted}</h2>
+          {dayData ? (
+            dayData.transactions.map((tx) => (
+              <TransactionListItem key={tx.id} {...tx} />
+            ))
+          ) : (
+            <p>No transactions</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  return (
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <button onClick={() => setCurrentMonth(addDays(currentMonth, -30))}>Prev</button>
+        <h1>{format(currentMonth, "MMMM yyyy")}</h1>
+        <button onClick={() => setCurrentMonth(addDays(currentMonth, 30))}>Next</button>
+      </div>
+
+      {renderCalendar()}
+      {renderDetails()}
+      <AddTransactionsBtn />
+    </div>
+  );
+}
