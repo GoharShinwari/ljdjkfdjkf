@@ -1,0 +1,9 @@
+const currentMonthData: Transaction[] = [];
+if (Array.isArray(transactions)) {
+  for (const t of transactions) {
+    const date = new Date(t.date);
+    if (date.getMonth() === month && date.getFullYear() === year) {
+      currentMonthData.push(t);
+    }
+  }
+}
