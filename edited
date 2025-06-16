@@ -1,0 +1,130 @@
+import React, { useState, useEffect } from "react";
+import AddTransactionsBtn from "./addTransactionsBtn";
+
+type Transaction = {
+  id: number;
+  date: string;          // ISO string “YYYY-MM-DD”
+  category: string;
+  amount: number;
+  description: string;
+};
+
+export default function MonthCalendar() {
+  const today = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const month = selectedMonth;
+  const year = selectedYear;
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  // 1) on mount, load *all* of this user’s transactions
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/users/me/transactions/", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          // if you’re using cookie-based sessions:
+          credentials: "include",
+        });
+        if (!res.ok) {
+          console.error("couldn't fetch transactions");
+          return;
+        }
+        const data: Transaction[] = await res.json();
+        setTransactions(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    load();
+  }, []);
+
+  // 2) filter down to just this month
+  const transactionsForMonth = transactions.filter((tx) => {
+    const d = new Date(tx.date);
+    return d.getFullYear() === year && d.getMonth() + 1 === month;
+  });
+
+  // 3) build the per-day totals array
+  const dailyTotals = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    const dayString = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return transactionsForMonth
+      .filter((tx) => tx.date === dayString)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  });
+
+  const totalThisMonth = dailyTotals.reduce((sum, v) => sum + v, 0);
+
+  // 4) month navigation
+  const prevMonth = () => {
+    if (month === 1) {
+      setSelectedMonth(12);
+      setSelectedYear((y) => y - 1);
+    } else {
+      setSelectedMonth((m) => m - 1);
+    }
+  };
+  const nextMonth = () => {
+    if (month === 12) {
+      setSelectedMonth(1);
+      setSelectedYear((y) => y + 1);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  };
+
+  // 5) when AddTransactionsBtn calls us back, POST and append
+  const handleAddTransaction = async (tx: Omit<Transaction, "id">) => {
+    try {
+      const res = await fetch("/users/me/transactions/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(tx),
+      });
+      if (!res.ok) {
+        console.error("failed to add transaction");
+        return;
+      }
+      const newTx: Transaction = await res.json();
+      setTransactions((prev) => [...prev, newTx]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <div className="p-4">
+      <div className="flex justify-between items-center mb-4">
+        <button onClick={prevMonth}>Prev</button>
+        <h2 className="text-xl font-bold">{`${month}-${year}`}</h2>
+        <button onClick={nextMonth}>Next</button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-2">
+        {Array.from({ length: daysInMonth }, (_, i) => {
+          const day = i + 1;
+          const displayDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          return (
+            <div key={day} className="flex flex-col items-center p-2 border rounded">
+              <span className="font-semibold">{day}</span>
+              {dailyTotals[i] > 0 && (
+                <p className="text-green-500 mt-1">{`$${dailyTotals[i].toFixed(2)}`}</p>
+              )}
+              <AddTransactionsBtn date={displayDate} onAdd={handleAddTransaction} />
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex justify-between">
+        <p>{`Total: $${totalThisMonth.toFixed(2)}`}</p>
+        {/* If you ever get a budget value back from the API, render it here */}
+      </div>
+    </div>
+  );
+}
