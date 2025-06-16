@@ -1,0 +1,38 @@
+import React from "react";
+import { Button } from "../button"; // adjust path if necessary
+
+type TransactionInput = {
+  date: string;          // “YYYY-MM-DD”
+  category: string;
+  amount: number;
+  description: string;
+};
+
+interface Props {
+  date: string;
+  onAdd: (tx: TransactionInput) => void;
+}
+
+const AddTransactionsBtn: React.FC<Props> = ({ date, onAdd }) => {
+  const handleClick = () => {
+    const category = prompt("Type in category")?.trim() || "";
+    const description = prompt("Type in the transaction name")?.trim() || "";
+    const amtRaw = prompt("Type in transaction price")?.trim() || "";
+    const amount = Number(amtRaw);
+
+    if (!category || !description || isNaN(amount)) {
+      alert("Invalid input. Please try again.");
+      return;
+    }
+
+    onAdd({ date, category, amount, description });
+  };
+
+  return (
+    <div className="flex justify-center mt-2">
+      <Button onClick={handleClick}>Add Transaction</Button>
+    </div>
+  );
+};
+
+export default AddTransactionsBtn;
