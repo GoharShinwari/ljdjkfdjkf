@@ -1,0 +1,23 @@
+<Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
+  <DialogTrigger />
+  <DialogContent className="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
+    <DialogTitle className="text-lg font-bold mb-2">
+      {format(selectedDay, "PPP")}
+    </DialogTitle>
+    <DialogDescription className="text-sm text-gray-500 mb-4">
+      Transactions and total spending for this day.
+    </DialogDescription>
+
+    <p className="text-sm text-gray-600 mb-4">
+      Total Spending: ${dayData?.total.toFixed(2) || 0}
+    </p>
+
+    <AddTransactionsBtn />
+
+    {dayData ? (
+      dayData.transactions.map((tx) => <TransactionListItem key={tx.id} {...tx} />)
+    ) : (
+      <p className="text-gray-400 mt-4">No transactions for this day</p>
+    )}
+  </DialogContent>
+</Dialog>
