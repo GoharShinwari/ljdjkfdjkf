@@ -1,0 +1,50 @@
+import { useContext } from "react";
+import Button from "@/components/calendar-parts/button";
+import { SpendingDataContext } from "@/contexts/SpendingDataContext";
+
+export default function AddTransactionsBtn() {
+  const { setSpendingData } = useContext(SpendingDataContext);
+
+  const addTransaction = async () => {
+    const category = prompt("Type in category") ?? "";
+    const description = prompt("Type in transaction name") ?? "";
+    const amount = Number(prompt("Type in transaction price"));
+
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const date = `${yyyy}-${mm}-${dd}`;
+
+    const payload = { date, category, amount, description };
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/users/me/transactions/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const tx = await res.json();
+
+      setSpendingData((prev) => {
+        const dayData = prev[date] ?? { total: 0, budget: 0, transactions: [] };
+        return {
+          ...prev,
+          [date]: {
+            ...dayData,
+            transactions: [...dayData.transactions, tx],
+            total: dayData.total + tx.amount,
+          },
+        };
+      });
+    } catch (err) {
+      console.error("Error adding transaction:", err);
+    }
+  };
+
+  return (
+    <div className="flex justify-center mt-4">
+      <Button onClick={addTransaction}>Add Transaction</Button>
+    </div>
+  );
+}
