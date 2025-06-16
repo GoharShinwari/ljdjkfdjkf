@@ -1,0 +1,30 @@
+import { createContext } from "react";
+
+type Transaction = {
+  id: number;
+  date: string;
+  amount: number;
+  category: string;
+  description: string;
+};
+
+type DayData = {
+  total: number;
+  budget: number;
+  transactions: Transaction[];
+};
+
+export const SpendingDataContext = createContext<{
+  spendingData: Record<string, DayData>;
+  setSpendingData: React.Dispatch<React.SetStateAction<Record<string, DayData>>>;
+}>({
+  spendingData: {},
+  setSpendingData: () => {},
+});
+
+
+----
+
+<SpendingDataContext.Provider value={{ spendingData, setSpendingData }}>
+  <MonthCalendar />
+</SpendingDataContext.Provider>
