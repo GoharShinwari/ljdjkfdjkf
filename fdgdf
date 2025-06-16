@@ -1,0 +1,72 @@
+Yes, if `.filter()` is breaking because `transactions` is `null` or not an array yet, switching to a manual `for` loop (or better yet, guarding the `.filter()` call) can help avoid runtime crashes.
+
+### 🔧 Fix Option 1: Safe `.filter()` with Guard
+
+Update your code like this to avoid using `.filter()` on a non-array:
+
+```ts
+const dailyTransactions = Array.isArray(transactions)
+  ? transactions.filter((t) => t.date === dateKey)
+  : [];
+```
+
+Same thing for the delete one:
+
+```tsx
+onDelete={(id) => {
+  setTransactions((prev) => Array.isArray(prev) ? prev.filter((t) => t.id !== id) : []);
+}}
+```
+
+---
+
+### ✅ Fix Option 2: Use `for` loop (Manual Filtering)
+
+If you *really* want to ditch `.filter()`, this is equivalent logic using a `for` loop:
+
+```ts
+const dailyTransactions = [];
+if (Array.isArray(transactions)) {
+  for (const t of transactions) {
+    if (t.date === dateKey) {
+      dailyTransactions.push(t);
+    }
+  }
+}
+```
+
+And for deletion:
+
+```tsx
+onDelete={(id) => {
+  setTransactions((prev) => {
+    const updated = [];
+    if (Array.isArray(prev)) {
+      for (const t of prev) {
+        if (t.id !== id) updated.push(t);
+      }
+    }
+    return updated;
+  });
+}}
+```
+
+---
+
+### 🔍 Why This Happens:
+
+You're seeing `transactions.filter is not a function` because `transactions` is probably initialized as `null`, `undefined`, or some other non-array value before your `fetch` runs and sets it.
+
+---
+
+### ✅ Extra Tip:
+
+To avoid repeating `Array.isArray()` everywhere, initialize `transactions` like:
+
+```ts
+const [transactions, setTransactions] = useState<Transaction[]>([]);
+```
+
+This way you’re always working with an array, and `.filter()` just works.
+
+Let me know if you want help refactoring to ensure consistent types.
