@@ -1,0 +1,57 @@
+--- MonthCalendar.tsx
++++ MonthCalendar.tsx
+@@ top of file
+-import { useState } from "react";
++import { useState } from "react";
+@@ after imports, before your component’s `export default`
++type Transaction = {
++  category: string
++  amount: number
++  description: string
++}
++
++type SpendingRecord = {
++  date: string
++  total: number
++  budget: number
++  transactions: Transaction[]
++}
+
+@@ export default function MonthCalendar(...) {
+-  // you were rendering directly from SAMPLE_SPENDING_DATA
++  // switch to reactive state
++  const [spendingData, setSpendingData] = useState<SpendingRecord[]>(SAMPLE_SPENDING_DATA)
+@@ inside MonthCalendar, after your selectedDay/selectedMonth/selectedYear hooks
++  const handleAddTransaction = (newTx: Transaction, dateStr: string) => {
++    setSpendingData(prev => {
++      const idx = prev.findIndex(r => r.date === dateStr)
++      if (idx > -1) {
++        return prev.map((r, i) =>
++          i === idx
++            ? {
++                ...r,
++                total: r.total + newTx.amount,
++                transactions: [...r.transactions, newTx],
++              }
++            : r
++        )
++      } else {
++        return [
++          ...prev,
++          { date: dateStr, total: newTx.amount, budget: 0, transactions: [newTx] },
++        ]
++      }
++    })
++  }
+@@ rendering the calendar grid
+-        const dayRecord = SAMPLE_SPENDING_DATA.find(r => r.date === dateStr)
++        const dayRecord = spendingData.find(r => r.date === dateStr)
+@@ where you render the badge/total
+-          {dayRecord?.total > 0 && <Badge>{dayRecord.total}</Badge>}
++          {dayRecord?.total > 0 && <Badge>{dayRecord.total}</Badge>}
+@@ your AddTransactionsBtn usage
+-          <AddTransactionsBtn date={dateStr} />
++          <AddTransactionsBtn
++            date={dateStr}
++            onAdd={(tx: Transaction) => handleAddTransaction(tx, dateStr)}
++          />
