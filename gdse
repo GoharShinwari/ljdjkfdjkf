@@ -1,0 +1,109 @@
+Great — here's how to **remove the hardcoded `SAMPLE_SPENDING_DATA`** and **replace it with your live backend data** using the `transactions` state you're already managing.
+
+---
+
+### 🧨 What to Remove
+
+Currently, you're doing something like this (based on your screenshots):
+
+```tsx
+const SAMPLE_SPENDING_DATA = {
+  "2025-06-01": {
+    total: 140.5,
+    transactions: [
+      { category: "Rent", amount: 50.0, description: "Monthly rent" },
+      ...
+    ]
+  },
+  ...
+};
+
+const getSpendingData = (day: number) => {
+  const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return SAMPLE_SPENDING_DATA[key] ?? { total: 0, transactions: [] };
+};
+```
+
+---
+
+### ✅ Replace with a Live `getSpendingData` Function
+
+Assuming you're already fetching transactions into:
+
+```tsx
+const [transactions, setTransactions] = useState<Transaction[]>([]);
+```
+
+Here’s what to do instead:
+
+---
+
+### ✅ Step 1: Delete `SAMPLE_SPENDING_DATA`
+
+Just delete:
+
+```tsx
+const SAMPLE_SPENDING_DATA = { ... };
+```
+
+---
+
+### ✅ Step 2: Replace `getSpendingData` with this:
+
+```tsx
+const getSpendingData = (day: number) => {
+  const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const dailyTransactions = transactions.filter(t => t.date === dateKey);
+  const total = dailyTransactions.reduce((sum, t) => sum + t.amount, 0);
+  return {
+    total,
+    transactions: dailyTransactions
+  };
+};
+```
+
+> ✅ This uses the real `transactions` state and computes daily totals and matching transactions for each day.
+
+---
+
+### ✅ Step 3: Use This Instead of `SAMPLE_SPENDING_DATA[...]`
+
+Anywhere you were doing something like:
+
+```tsx
+const currentMonthData = SAMPLE_SPENDING_DATA[...];
+```
+
+Replace with a call to `getSpendingData(day)` like:
+
+```tsx
+const spendingData = getSpendingData(day);
+```
+
+You’ve already done this in your code like:
+
+```tsx
+const selectedDayData = selectedDay ? getSpendingData(selectedDay) : null;
+```
+
+Keep doing that — just make sure it’s not pulling from `SAMPLE_SPENDING_DATA`.
+
+---
+
+### ✅ Step 4: Confirm Date Format Consistency
+
+Make sure:
+
+* Backend returns dates like `"2025-06-01"`
+* You match that format in `getSpendingData`
+
+---
+
+### ✅ Final Reminder
+
+After doing this:
+
+* Your calendar will reflect **real backend data**
+* Adding a transaction will `setTransactions([...prev, newTx])` and your totals/cards will update instantly
+
+Let me know if you want me to double-check any of those replacement lines you use for mapping days, rendering badges, or dialog summaries.
