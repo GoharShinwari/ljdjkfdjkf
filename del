@@ -1,0 +1,94 @@
+Alright Gohar — to get your **`DeleteTransactionBtn`** fully working with the backend, let’s wire it up to:
+
+* Send a `DELETE` request to `/users/me/transactions/`
+* Include the `transaction.id` to identify which one to delete
+* Update your UI after deleting
+
+---
+
+### ✅ 1. Update `deleteTransactionBtn.tsx`
+
+Let’s pass in the transaction `id` as a prop and make the request:
+
+```tsx
+import { Button } from "@/components/calendar-parts/button";
+
+interface Props {
+  id: number;
+  onDelete: (id: number) => void;
+}
+
+const DeleteTransactionBtn = ({ id, onDelete }: Props) => {
+  const deleteTransaction = async () => {
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/users/me/transactions/`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ id }), // backend expects an object with the id
+      });
+
+      if (res.ok) {
+        onDelete(id); // update frontend
+      } else {
+        console.error("Failed to delete transaction");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+    }
+  };
+
+  return (
+    <Button onClick={deleteTransaction} className="text-xs text-red-500 ml-2">
+      Delete
+    </Button>
+  );
+};
+
+export default DeleteTransactionBtn;
+```
+
+---
+
+### ✅ 2. Use it inside `MonthCalendar.tsx`
+
+When rendering each transaction inside the dialog:
+
+```tsx
+{selectedDayData.transactions.map((transaction) => (
+  <div key={transaction.id} className="flex justify-between">
+    <div>
+      <p className="text-sm">{transaction.description}</p>
+      <p className="text-xs text-muted-foreground">{transaction.category}</p>
+    </div>
+    <div className="flex items-center gap-2">
+      <p className="font-semibold">${transaction.amount.toFixed(2)}</p>
+      <DeleteTransactionBtn
+        id={transaction.id}
+        onDelete={(id) => {
+          setTransactions((prev) => prev.filter((t) => t.id !== id));
+        }}
+      />
+    </div>
+  </div>
+))}
+```
+
+---
+
+### 🧠 Backend Notes
+
+Make sure your backend `DELETE /users/me/transactions/`:
+
+* Accepts a JSON body with `{ id: number }`
+* Uses the session token to validate the user
+* Deletes that user’s transaction with the given ID
+
+---
+
+### ✅ End Result:
+
+* You’ll click Delete ➝ backend deletes it
+* State updates ➝ calendar refreshes automatically
+
+Let me know when you're ready to do the Edit button too.
