@@ -1,0 +1,55 @@
+Yes — ✅ **your server absolutely needs to be running** for this to work. Here's why:
+
+---
+
+### 🔧 Why You Need the Server Running
+
+Your frontend is trying to:
+
+* `POST` to `/api/me/transactions/`
+* `GET` from `/api/me/transactions/`
+
+These are **backend endpoints** defined in your FastAPI server (as shown in your screenshot). If the server isn’t running, those requests will fail with:
+
+```
+Network Error
+Failed to fetch
+404 Not Found
+```
+
+---
+
+### ✅ To make it work:
+
+1. **Run your FastAPI server** (usually):
+
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+   Or however your project is set up (`main.py`, `app.py`, etc.).
+
+2. Make sure it’s running on the correct port — often `http://127.0.0.1:8000`.
+
+3. If your frontend is on another port (like Vite on `3000`), you may need to:
+
+   * **Proxy requests** using a Vite config.
+   * Or hit `http://localhost:8000/api/...` in your fetch calls explicitly.
+
+---
+
+### ✅ Pro Tip (for local testing)
+
+If you're testing with mock data or fake user `99`, you can:
+
+* Temporarily bypass auth in the backend (not recommended in production).
+* Or log in to get a valid session token and let the backend handle it properly (ideal).
+
+---
+
+### 🔁 TL;DR
+
+* Yes, **you need the FastAPI backend running**.
+* Make sure ports and CORS are handled properly if frontend and backend are separate.
+* Let me know if you want help setting up a dev proxy or testing locally!
+w
