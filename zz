@@ -1,0 +1,150 @@
+// components/calendar-parts/AddTransactionsBtn.tsx
+import { Button } from "@/components/calendar-parts/button";
+
+type Transaction = {
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+};
+
+const AddTransactionsBtn = ({
+  date,
+  onAdd,
+}: {
+  date: string;
+  onAdd: () => void; // now just triggers parent to re-fetch
+}) => {
+  const addTransaction = async () => {
+    const category = prompt("Type in category")?.trim();
+    const description = prompt("Type in the transaction name")?.trim();
+    const amount = Number(prompt("Type in transaction price")?.trim());
+
+    if (!category || !description || isNaN(amount)) {
+      alert("Invalid input. Please try again.");
+      return;
+    }
+
+    const newTransaction: Transaction = {
+      date,
+      category,
+      description,
+      amount,
+    };
+
+    try {
+      const res = await fetch("/api/me/transactions/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // include session cookies
+        body: JSON.stringify(newTransaction),
+      });
+
+      if (!res.ok) throw new Error("Failed to add transaction");
+
+      onAdd(); // trigger refresh in parent
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add transaction.");
+    }
+  };
+
+  return (
+    <div className="flex justify-center">
+      <Button onClick={addTransaction}>Add Transaction</Button>
+    </div>
+  );
+};
+
+export default AddTransactionsBtn;
+
+
+
+// components/MonthCalendar.tsx
+import { useEffect, useState } from "react";
+import AddTransactionsBtn from "./calendar-parts/AddTransactionsBtn";
+
+type Transaction = {
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+};
+
+const MonthCalendar = () => {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth] = useState(new Date().getMonth());
+
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch("/api/me/transactions/", {
+        credentials: "include",
+      });
+      const data = await res.json();
+
+      const filtered = data.filter((tx: Transaction) => {
+        const txDate = new Date(tx.date);
+        return (
+          txDate.getFullYear() === selectedYear &&
+          txDate.getMonth() === selectedMonth
+        );
+      });
+
+      setTransactions(filtered);
+    } catch (err) {
+      console.error("Failed to fetch transactions", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [selectedMonth, selectedYear]);
+
+  return (
+    <div className="p-4">
+      <h1 className="text-lg font-bold mb-2">
+        {new Date(selectedYear, selectedMonth).toLocaleString("default", {
+          month: "long",
+          year: "numeric",
+        })}
+      </h1>
+
+      <div className="grid grid-cols-7 gap-2">
+        {Array.from({ length: daysInMonth }, (_, i) => {
+          const dateStr = `${selectedYear}-${(selectedMonth + 1)
+            .toString()
+            .padStart(2, "0")}-${(i + 1).toString().padStart(2, "0")}`;
+
+          const dayTxs = transactions.filter((tx) => tx.date === dateStr);
+          const total = dayTxs.reduce((sum, t) => sum + t.amount, 0);
+
+          return (
+            <div key={dateStr} className="border p-2 rounded-md">
+              <p className="font-medium">{i + 1}</p>
+              {dayTxs.length > 0 ? (
+                <>
+                  <p className="text-sm text-green-600">Total: ${total}</p>
+                  {dayTxs.map((tx, idx) => (
+                    <div key={idx} className="text-xs mt-1">
+                      • {tx.category}: ${tx.amount}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <p className="text-xs text-gray-500">No transactions</p>
+              )}
+              <AddTransactionsBtn date={dateStr} onAdd={fetchTransactions} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default MonthCalendar;
